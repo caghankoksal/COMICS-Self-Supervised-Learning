@@ -1,3 +1,0 @@
-[submodule "Transformer-SSL"]
-	path = Transformer-SSL
-	url = https://github.com/SwinTransformer/Transformer-SSL.git
