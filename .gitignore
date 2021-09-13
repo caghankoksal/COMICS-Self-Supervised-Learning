@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+DINO/dino2/input
+DINO/dino2/output
+DINO/dino2/results/
+DINO/dino2/dino_deitsmall8_pretrain_full_checkpoint.pth
+DINO/dino2/dino_vitbase8_pretrain_full_checkpoint.pth
