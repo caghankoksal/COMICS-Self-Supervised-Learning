@@ -1,0 +1,16 @@
+save_path: /Networks
+num_classes: 200
+num_tiles: 9
+lr: 0.001
+n_epochs: 300
+bs: 32
+step_size: 35
+gamma: 0.2
+verbose_idx: 200
+kernels: 8
+seed: 1
+tau: 45
+dataset: GoldenAgePanels
+arch: efficient-net
+pretrained: False
+device: cuda

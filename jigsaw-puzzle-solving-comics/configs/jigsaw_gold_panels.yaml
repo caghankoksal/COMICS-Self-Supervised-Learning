@@ -1,0 +1,12 @@
+# For panel face reconstruction task
+panel_path: /datasets/COMICS/raw_panel_images/
+sequence_path: /userfiles/comics_grp/golden_age/panel_face_areas_new_90.json
+annot_path: /userfiles/comics_grp/golden_age/face_annots/
+panels_annotation: /userfiles/comics_grp/golden_age/only_panel_data.json
+permutation_path: /kuacc/users/ckoksal20/selfsupervised_learning/JigsawNet/Permutations/permutations_classes-200_tiles-9.npy
+train_test_ratio: 0.95
+num_panels: 1
+train_mode: True
+panel_dim: 
+    - 300
+    - 300
