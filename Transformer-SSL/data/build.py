@@ -20,27 +20,33 @@ from timm.data.transforms import _pil_interp
 from .cached_image_folder import CachedImageFolder
 from .custom_image_folder import CustomImageFolder
 from .samplers import SubsetRandomSampler
+from .comic_panels_dataset import PanelsDataset
 
 
 def build_loader(config):
     config.defrost()
-    dataset_train, config.MODEL.NUM_CLASSES = build_dataset(is_train=True, config=config)
+    dataset_train, config.MODEL.NUM_CLASSES = build_dataset(
+        is_train=True, config=config)
     config.freeze()
-    print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build train dataset")
+    print(
+        f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build train dataset")
     dataset_val, _ = build_dataset(is_train=False, config=config)
-    print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build val dataset")
+    print(
+        f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build val dataset")
 
     num_tasks = dist.get_world_size()
     global_rank = dist.get_rank()
     if config.DATA.ZIP_MODE and config.DATA.CACHE_MODE == 'part':
-        indices = np.arange(dist.get_rank(), len(dataset_train), dist.get_world_size())
+        indices = np.arange(dist.get_rank(), len(
+            dataset_train), dist.get_world_size())
         sampler_train = SubsetRandomSampler(indices)
     else:
         sampler_train = torch.utils.data.DistributedSampler(
             dataset_train, num_replicas=num_tasks, rank=global_rank, shuffle=True
         )
 
-    indices = np.arange(dist.get_rank(), len(dataset_val), dist.get_world_size())
+    indices = np.arange(dist.get_rank(), len(
+        dataset_val), dist.get_world_size())
     sampler_val = SubsetRandomSampler(indices)
 
     data_loader_train = torch.utils.data.DataLoader(
@@ -86,6 +92,31 @@ def build_dataset(is_train, config):
             root = os.path.join(config.DATA.DATA_PATH, prefix)
             dataset = CustomImageFolder(root, transform=transform)
         nb_classes = 1000
+    elif config.DATA.DATASET == "COMICS":
+
+        # For panel face reconstruction task"
+        panel_path = "/datasets/COMICS/raw_panel_images/"
+        panels_annotation = "/userfiles/comics_grp/golden_age/only_panel_data.json"
+        panel_dim = (300, 300)
+        train_test_ratio = 0.90
+        # Create Train dataset
+        if is_train:
+            dataset = PanelsDataset(images_path=panel_path,
+                                    annotation_path=panels_annotation,
+                                    panel_dim=panel_dim,
+                                    transformations=transform,
+                                    train_mode=True,
+                                    train_test_ratio=train_test_ratio)
+
+        # Create validation and test dataset
+        else:
+            dataset = PanelsDataset(images_path=panel_path,
+                                    annotation_path=panels_annotation,
+                                    panel_dim=panel_dim,
+                                    transforms=transform,
+                                    train_mode=False,
+                                    train_test_ratio=train_test_ratio)
+
     else:
         raise NotImplementedError("We only support ImageNet Now.")
 
@@ -95,36 +126,42 @@ def build_dataset(is_train, config):
 def build_transform(is_train, config):
     if config.AUG.SSL_AUG:
         if config.AUG.SSL_AUG_TYPE == 'byol':
-            normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-            
+            normalize = transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
             transform_1 = transforms.Compose([
-                transforms.RandomResizedCrop(config.DATA.IMG_SIZE, scale=(config.AUG.SSL_AUG_CROP, 1.)),
+                transforms.RandomResizedCrop(
+                    config.DATA.IMG_SIZE, scale=(config.AUG.SSL_AUG_CROP, 1.)),
                 transforms.RandomHorizontalFlip(),
-                transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.2, 0.1)], p=0.8),
+                transforms.RandomApply(
+                    [transforms.ColorJitter(0.4, 0.4, 0.2, 0.1)], p=0.8),
                 transforms.RandomGrayscale(p=0.2),
                 transforms.RandomApply([GaussianBlur()], p=1.0),
                 transforms.ToTensor(),
                 normalize,
             ])
             transform_2 = transforms.Compose([
-                transforms.RandomResizedCrop(config.DATA.IMG_SIZE, scale=(config.AUG.SSL_AUG_CROP, 1.)),
+                transforms.RandomResizedCrop(
+                    config.DATA.IMG_SIZE, scale=(config.AUG.SSL_AUG_CROP, 1.)),
                 transforms.RandomHorizontalFlip(),
-                transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.2, 0.1)], p=0.8),
+                transforms.RandomApply(
+                    [transforms.ColorJitter(0.4, 0.4, 0.2, 0.1)], p=0.8),
                 transforms.RandomGrayscale(p=0.2),
                 transforms.RandomApply([GaussianBlur()], p=0.1),
                 transforms.RandomApply([ImageOps.solarize], p=0.2),
                 transforms.ToTensor(),
                 normalize,
             ])
-            
+
             transform = (transform_1, transform_2)
             return transform
         else:
             raise NotImplementedError
-    
+
     if config.AUG.SSL_LINEAR_AUG:
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        
+        normalize = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
         if is_train:
             transform = transforms.Compose([
                 transforms.RandomResizedCrop(config.DATA.IMG_SIZE),
@@ -140,7 +177,7 @@ def build_transform(is_train, config):
                 normalize,
             ])
         return transform
-    
+
     resize_im = config.DATA.IMG_SIZE > 32
     if is_train:
         # this should always dispatch to transforms_imagenet_train
@@ -157,7 +194,8 @@ def build_transform(is_train, config):
         if not resize_im:
             # replace RandomResizedCropAndInterpolation with
             # RandomCrop
-            transform.transforms[0] = transforms.RandomCrop(config.DATA.IMG_SIZE, padding=4)
+            transform.transforms[0] = transforms.RandomCrop(
+                config.DATA.IMG_SIZE, padding=4)
         return transform
 
     t = []
@@ -165,7 +203,8 @@ def build_transform(is_train, config):
         if config.TEST.CROP:
             size = int((256 / 224) * config.DATA.IMG_SIZE)
             t.append(
-                transforms.Resize(size, interpolation=_pil_interp(config.DATA.INTERPOLATION)),
+                transforms.Resize(size, interpolation=_pil_interp(
+                    config.DATA.INTERPOLATION)),
                 # to maintain same ratio w.r.t. 224 images
             )
             t.append(transforms.CenterCrop(config.DATA.IMG_SIZE))
