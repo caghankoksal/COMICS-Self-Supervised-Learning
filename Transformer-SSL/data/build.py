@@ -93,7 +93,7 @@ def build_dataset(is_train, config):
             dataset = CustomImageFolder(root, transform=transform)
         nb_classes = 1000
     elif config.DATA.DATASET == "COMICS":
-
+        nb_classes = 0
         # For panel face reconstruction task"
         panel_path = "/datasets/COMICS/raw_panel_images/"
         panels_annotation = "/userfiles/comics_grp/golden_age/only_panel_data.json"
@@ -115,7 +115,7 @@ def build_dataset(is_train, config):
             dataset = PanelsDataset(images_path=panel_path,
                                     annotation_path=panels_annotation,
                                     panel_dim=panel_dim,
-                                    transforms=transform,
+                                    transformations=transform,
                                     train_mode=False,
                                     train_test_ratio=train_test_ratio)
 

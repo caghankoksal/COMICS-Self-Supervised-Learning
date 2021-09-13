@@ -48,6 +48,7 @@ class PanelsDataset(Dataset):
         self.panel_dim = panel_dim
         self.transforms = transformations
         self.squartize = squartize
+        self.target_transform = None
 
         with open(annotation_path) as json_file:
             self.data = json.load(json_file)
@@ -73,10 +74,17 @@ class PanelsDataset(Dataset):
         panel = Image.open(annot["path"]).convert('RGB')
         if self.squartize:
             panel = panel_squartize(panel, self.panel_dim)
-        if self.transforms:
-            panel = self.transforms(panel)
-        '''
-        if not self.squartize and not self.transforms:
-            panel = transforms.ToTensor()(panel).unsqueeze(0)
-        '''
-        return panel
+        ret = []
+        if self.transforms is not None:
+            for t in self.transforms:
+                ret.append(t(panel))
+        else:
+            ret.append(panel)
+            
+        target = 5
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+        ret.append(target)
+
+        return ret
