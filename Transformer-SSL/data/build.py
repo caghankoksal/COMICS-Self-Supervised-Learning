@@ -108,6 +108,8 @@ def build_dataset(is_train, config):
                                     train_mode=True,
                                     train_test_ratio=train_test_ratio)
 
+            print("COMICS Dataset object is created for training")
+
         # Create validation and test dataset
         else:
             dataset = PanelsDataset(images_path=panel_path,
@@ -116,6 +118,8 @@ def build_dataset(is_train, config):
                                     transforms=transform,
                                     train_mode=False,
                                     train_test_ratio=train_test_ratio)
+
+            print("COMICS Dataset object is created for evaluation")
 
     else:
         raise NotImplementedError("We only support ImageNet Now.")
