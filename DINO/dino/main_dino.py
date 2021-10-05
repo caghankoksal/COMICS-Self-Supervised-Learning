@@ -35,6 +35,7 @@ import vision_transformer as vits
 from vision_transformer import DINOHead
 
 from dataset.dataset import PanelsDataset
+from backbone.swin import SwinTransformer
 
 torchvision_archs = sorted(name for name in torchvision_models.__dict__
     if name.islower() and not name.startswith("__")
@@ -208,6 +209,11 @@ def train_dino(args):
         student = torchvision_models.__dict__[args.arch]()
         teacher = torchvision_models.__dict__[args.arch]()
         embed_dim = student.fc.weight.shape[1]
+
+    elif args.arch == "swin":
+        student = SwinTransformer()
+        teacher = SwinTransformer()
+        embed_dim = student.num_features[-1]
     else:
         print(f"Unknow architecture: {args.arch}")
 
