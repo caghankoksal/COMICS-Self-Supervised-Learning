@@ -1157,13 +1157,14 @@ class SwinTransformer(BaseModule):
             self.load_state_dict(state_dict, False)
 
     def forward(self, x):
+        #print("Input x shape", x.shape)
         x, hw_shape = self.patch_embed(x)
 
         if self.use_abs_pos_embed:
             x = x + self.absolute_pos_embed
         x = self.drop_after_pos(x)
 
-        outs = []
+        
         for i, stage in enumerate(self.stages):
             x, hw_shape, out, out_hw_shape = stage(x, hw_shape)
             if i in self.out_indices:
@@ -1172,9 +1173,16 @@ class SwinTransformer(BaseModule):
                 out = out.view(-1, *out_hw_shape,
                                self.num_features[i]).permute(0, 3, 1,
                                                              2).contiguous()
-                outs.append(out)
+                
 
         #return outs
         # Instead of returning all feature maps we return last feature map
-        ln_out = self.ln(outs[-1].permute(0,2,1))
-        return self.avgpool(ln_out.transpose(1,2)).squeeze(2)
+        #print("len outs ", len(outs), "out[-1] shape : ", outs[-1].shape)
+        
+        
+        flatten_out = out.flatten(2) # Batch size, 768, 49
+        #print("Flatten out shape,", flatten_out.shape, "flatten_out  shape :", flatten_out.shape)
+        ln_out = self.ln(flatten_out.permute(0,2,1))  # BS, 49, 768
+        #print("LN OUT SHAPE", ln_out.shape)
+        return self.avgpool(ln_out.permute(0,2,1)).squeeze(2)
+        
