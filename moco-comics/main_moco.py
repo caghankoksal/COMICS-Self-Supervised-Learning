@@ -25,6 +25,8 @@ import torchvision.models as models
 import moco.loader
 import moco.builder
 
+from dataset.dataset import PanelsDataset
+
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
@@ -244,9 +246,21 @@ def main_worker(gpu, ngpus_per_node, args):
             normalize
         ]
 
-    train_dataset = datasets.ImageFolder(
+    """train_dataset = datasets.ImageFolder(
         traindir,
-        moco.loader.TwoCropsTransform(transforms.Compose(augmentation)))
+        moco.loader.TwoCropsTransform(transforms.Compose(augmentation)))"""
+
+    panel_path= "/datasets/COMICS/raw_panel_images/"
+    panels_annotation="/userfiles/comics_grp/golden_age/only_panel_data.json"
+    panel_dim = (300,300)
+    train_test_ratio = 0.90
+    
+    train_dataset  = PanelsDataset(images_path = panel_path,
+                         annotation_path = panels_annotation,
+                         panel_dim = panel_dim ,
+                         transforms = moco.loader.TwoCropsTransform(transforms.Compose(augmentation)),
+                         train_test_ratio = train_test_ratio)
+
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
