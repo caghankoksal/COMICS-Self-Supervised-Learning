@@ -120,10 +120,11 @@ class MoCo(nn.Module):
         Output:
             logits, targets
         """
-
+        #print("Inside forward model ", " Im_q shape : ", im_q.shape, " Im_k shape ", im_k.shape)
         # compute query features
         q = self.encoder_q(im_q)  # queries: NxC
         q = nn.functional.normalize(q, dim=1)
+        #print("Q.shape",q.shape)
 
         # compute key features
         with torch.no_grad():  # no gradient to keys

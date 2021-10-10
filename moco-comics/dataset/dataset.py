@@ -86,8 +86,5 @@ class PanelsDataset(Dataset):
         if not self.squartize and not self.transforms:
             panel = transforms.ToTensor()(panel).unsqueeze(0)
         '''
-        
-            
-       
-            
-        return panel
+
+        return (panel,torch.tensor([0]))

@@ -305,6 +305,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
     end = time.time()
     for i, (images, _) in enumerate(train_loader):
+        print("Len images ",len(images), "images[0]. shape ",images[0].shape)
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -398,16 +399,20 @@ def adjust_learning_rate(optimizer, epoch, args):
 def accuracy(output, target, topk=(1,)):
     """Computes the accuracy over the k top predictions for the specified values of k"""
     with torch.no_grad():
+        print("Output.shape()",output.shape, "Target.shape", target.shape, "Topk : ",topk)
         maxk = max(topk)
         batch_size = target.size(0)
-
+        #print(" output.topk(maxk, 1, True, True) :  ",output.topk(maxk, 1, True, True))
         _, pred = output.topk(maxk, 1, True, True)
         pred = pred.t()
+        print("Pred shape ", pred.shape)
         correct = pred.eq(target.view(1, -1).expand_as(pred))
-
+        
+        print("Correct shape",correct.shape)
+        print("Topk",topk)
         res = []
         for k in topk:
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+            correct_k = correct[:k].flatten().float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
 
