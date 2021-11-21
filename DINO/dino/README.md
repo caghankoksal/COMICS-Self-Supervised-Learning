@@ -1,3 +1,20 @@
+
+# Self-Supervised Vision Transformers with DINO trained on COMICS
+## Pretrained Models and Links
+
+- Trained  DINO Vit-Small model on COMICS dataset  and training logs can be found et [link](https://drive.google.com/drive/folders/1vfAfCPoITQ5i0K6r6G4cy-JAQrbC2PFj?usp=sharing)
+
+## Example Script to Visualize attention maps
+
+```
+python visualize_attention.py --pretrained_weights results_dino_vit_COMICS/  --arch vit_small --patch_size 16  --image_path /datasets/COMICS/raw_panel_images/1352/33_2.jpg  --output_dir output_folder/
+```
+
+##  Model Output Examples
+
+
+
+
 # Self-Supervised Vision Transformers with DINO
 
 PyTorch implementation and pretrained models for DINO. For details, see **Emerging Properties in Self-Supervised Vision Transformers**.  
