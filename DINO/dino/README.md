@@ -4,6 +4,13 @@
 
 - Trained  DINO Vit-Small model on COMICS dataset  and training logs can be found et [link](https://drive.google.com/drive/folders/1vfAfCPoITQ5i0K6r6G4cy-JAQrbC2PFj?usp=sharing)
 
+
+## COMICS Dataset:
+
+- [**Golden Age Comics**](https://digitalcomicmuseum.com/): Includes US comics between 1938 to 1956. The extracted panel images are used, which are retrieved through the study [The Amazing Mysteries of the Gutter](https://arxiv.org/abs/1611.05118).
+
+
+
 ## Example Script to Visualize attention maps
 
 ```
