@@ -11,14 +11,17 @@
 
 
 
-## Example Script to Visualize attention maps
+## Example Script to Visualize attention maps
 
 ```
 python visualize_attention.py --pretrained_weights results_dino_vit_COMICS/  --arch vit_small --patch_size 16 
 --image_path /datasets/COMICS/raw_panel_images/1352/33_2.jpg  --output_dir output_folder/
 ```
 
-##  Model Output Examples
+## Model Output Examples
+![Result 1](./images/readme_images/attn1.png)
+
+![Result 2](./images/readme_images/attn2.png)
 
 
 
