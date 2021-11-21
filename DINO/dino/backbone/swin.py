@@ -492,7 +492,7 @@ class WindowMSA(BaseModule):
     def init_weights(self):
         trunc_normal_init(self.relative_position_bias_table, std=0.02)
 
-    def forward(self, x, mask=None):
+    def forward(self, x, mask=None,return_attn=False):
         """
         Args:
             x (tensor): input features with shape of (num_windows*B, N, C)
@@ -525,11 +525,17 @@ class WindowMSA(BaseModule):
         attn = self.softmax(attn)
 
         attn = self.attn_drop(attn)
+        
+        out_attn = attn
 
         x = (attn @ v).transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
-        return x
+        
+        if return_attn :
+            return x, out_attn
+        else :
+            return x
 
     @staticmethod
     def double_step_seq(step1, len1, step2, len2):
@@ -570,7 +576,8 @@ class ShiftWindowMSA(BaseModule):
                  attn_drop_rate=0,
                  proj_drop_rate=0,
                  dropout_layer=dict(type='DropPath', drop_prob=0.),
-                 init_cfg=None):
+                 init_cfg=None,
+                 return_attn = False):
         super().__init__(init_cfg)
 
         self.window_size = window_size
@@ -589,7 +596,7 @@ class ShiftWindowMSA(BaseModule):
 
         self.drop = build_dropout(dropout_layer)
 
-    def forward(self, query, hw_shape):
+    def forward(self, query, hw_shape, return_attn = False):
         B, L, C = query.shape
         H, W = hw_shape
         assert L == H * W, 'input feature has wrong size'
@@ -638,13 +645,18 @@ class ShiftWindowMSA(BaseModule):
         query_windows = self.window_partition(shifted_query)
         # nW*B, window_size*window_size, C
         query_windows = query_windows.view(-1, self.window_size**2, C)
-
-        # W-MSA/SW-MSA (nW*B, window_size*window_size, C)
-        attn_windows = self.w_msa(query_windows, mask=attn_mask)
+        
+        if return_attn:
+            # W-MSA/SW-MSA (nW*B, window_size*window_size, C)
+            attn_windows, out_att = self.w_msa(query_windows, mask=attn_mask, return_attn=True )
+        else:
+            attn_windows = self.w_msa(query_windows, mask=attn_mask)
 
         # merge windows
         attn_windows = attn_windows.view(-1, self.window_size,
                                          self.window_size, C)
+        
+        
 
         # B H' W' C
         shifted_x = self.window_reverse(attn_windows, H_pad, W_pad)
@@ -663,7 +675,10 @@ class ShiftWindowMSA(BaseModule):
         x = x.view(B, H * W, C)
 
         x = self.drop(x)
-        return x
+        if return_attn : 
+            return x, out_att
+        else:
+            return x
 
     def window_reverse(self, windows, H, W):
         """
@@ -766,26 +781,45 @@ class SwinBlock(BaseModule):
             act_cfg=act_cfg,
             add_identity=True,
             init_cfg=None)
+        
 
-    def forward(self, x, hw_shape):
+    def forward(self, x, hw_shape, return_attn = False):
 
-        def _inner_forward(x):
+        def _inner_forward(x, return_attn=False):
             identity = x
             x = self.norm1(x)
-            x = self.attn(x, hw_shape)
+            
+            if return_attn:
+                x,attn = self.attn(x, hw_shape,return_attn=True)
+            else:
+                x = self.attn(x, hw_shape)
 
             x = x + identity
 
             identity = x
             x = self.norm2(x)
             x = self.ffn(x, identity=identity)
+                
+            if return_attn:
+                return x, attn
+            else:
+                return x
+                
+                
+            
 
-            return x
-
-        if self.with_cp and x.requires_grad:
+        if self.with_cp and x.requires_grad and return_attn:
+            x,attn = cp.checkpoint(_inner_forward, x, return_attn=return_attn)
+            return x,attn
+            
+        elif self.with_cp and x.requires_grad and not return_attn:
             x = cp.checkpoint(_inner_forward, x)
         else:
-            x = _inner_forward(x)
+            if return_attn:
+                x, attn = _inner_forward(x, return_attn=True)
+                return x, attn
+            else:
+                x = _inner_forward(x)
 
         return x
 
@@ -863,14 +897,33 @@ class SwinBlockSequence(BaseModule):
 
         self.downsample = downsample
 
-    def forward(self, x, hw_shape):
+    def forward(self, x, hw_shape, return_attn=False):
+        print("Swin Block sequence return attn : ",return_attn, "Downsample ",self.downsample )
+        attns = []
         for block in self.blocks:
-            x = block(x, hw_shape)
-
-        if self.downsample:
+            if return_attn :
+                x,attn = block(x, hw_shape, return_attn = True)
+                print("Appended attention : ",attn.shape)
+                attns.append(attn)
+            else:
+                x = block(x, hw_shape)
+        
+        if self.downsample and return_attn:
+            print("self.downsample and return_attn")
+            x_down, down_hw_shape = self.downsample(x, hw_shape)
+            return x_down, down_hw_shape, x, hw_shape, attns
+        elif self.downsample and not return_attn: 
+            print("self.downsample and not return_attn: ")
             x_down, down_hw_shape = self.downsample(x, hw_shape)
             return x_down, down_hw_shape, x, hw_shape
-        else:
+        
+        elif not self.downsample  and return_attn:
+            print("self.downsample == False and return_attn")
+            return x, hw_shape, x, hw_shape, attns
+        
+        
+        elif not self.downsample and not return_attn:
+            print("self.downsample == False and not return_attn")
             return x, hw_shape, x, hw_shape
 
 
@@ -1185,4 +1238,34 @@ class SwinTransformer(BaseModule):
         ln_out = self.ln(flatten_out.permute(0,2,1))  # BS, 49, 768
         #print("LN OUT SHAPE", ln_out.shape)
         return self.avgpool(ln_out.permute(0,2,1)).squeeze(2)
+    
+    
+    def get_attentions(self, x):
+        x, hw_shape = self.patch_embed(x)
+        if self.use_abs_pos_embed:
+            x = x + self.absolute_pos_embed
+        x = self.drop_after_pos(x)
+        
+        
+        outs = []
+        for i, stage in enumerate(self.stages):
+            
+            
+            x, hw_shape, out, out_hw_shape, att = stage(x, hw_shape, return_attn=True)
+            #print("Incoming att shaoe ", att)
+            
+            
+            outs.append(att)
+            print("Outs appended")
+            if i in self.out_indices:
+                norm_layer = getattr(self, f'norm{i}')
+                out = norm_layer(out)
+                out = out.view(-1, *out_hw_shape,
+                               self.num_features[i]).permute(0, 3, 1,
+                                                             2).contiguous()
+                
+                
+                
+        return outs
+        
         
