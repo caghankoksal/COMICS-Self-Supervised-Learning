@@ -10,7 +10,6 @@
 - [**Golden Age Comics**](https://digitalcomicmuseum.com/): Includes US comics between 1938 to 1956. The extracted panel images are used, which are retrieved through the study [The Amazing Mysteries of the Gutter](https://arxiv.org/abs/1611.05118).
 
 
-
 ## Example Script to Visualize attention maps
 
 ```
@@ -18,10 +17,9 @@ python visualize_attention.py --pretrained_weights results_dino_vit_COMICS/  --a
 --image_path /datasets/COMICS/raw_panel_images/1352/33_2.jpg  --output_dir output_folder/
 ```
 
-## Model Output Examples
+## Model  Attention Maps  Results
 ![Result 1](./images/readme_images/att1.png)
 ![Result 2](./images/readme_images/att2.png)
-![Result 3](./images/readme_images/att3.png)
 
 
 
