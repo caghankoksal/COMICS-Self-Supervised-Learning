@@ -22,7 +22,7 @@ python visualize_attention.py --pretrained_weights results_dino_vit_COMICS/  --a
 ![Result 1](./images/readme_images/attn1.png)
 
 ![Result 2](./images/readme_images/attn2.png)
-
+![Result 3](./images/readme_images/attn3.png)
 
 
 
