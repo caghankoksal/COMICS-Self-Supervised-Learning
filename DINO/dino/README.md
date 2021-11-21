@@ -22,10 +22,6 @@ python visualize_attention.py --pretrained_weights results_dino_vit_COMICS/  --a
 ![Result 2](./images/readme_images/att2.png)
 
 
-                           |  
-:-------------------------:|:-------------------------:
-![](./images/readme_images/att1.png) |  ![](./images/readme_images/att2.png)
-
 
 # Self-Supervised Vision Transformers with DINO
 
